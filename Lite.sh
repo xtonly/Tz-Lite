@@ -5,10 +5,9 @@ BASE_DIR="/opt/lite-monitor"
 DATA_DIR="${BASE_DIR}/data"
 COMPOSE_FILE="${BASE_DIR}/docker-compose.yml"
 
-# 修复：补全 GHCR (GitHub Container Registry) 前缀
 IMAGE_NAME="ghcr.io/nuomiiiii/lite:latest" 
-CONTAINER_PORT="12777"     # 修改：宿主机映射端口
-CONTAINER_DATA_DIR="/data" # 容器内部的数据存储路径 (视实际容器内的数据路径而定)
+CONTAINER_PORT="12777"     
+CONTAINER_DATA_DIR="/data" 
 # ============================================
 
 # 检查 root 权限
@@ -28,7 +27,6 @@ install_docker() {
         echo "Docker 已安装，跳过此步骤。"
     fi
 
-    # 兼容老版本 docker-compose 检查
     if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
         echo "正在安装 Docker Compose..."
         curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -41,7 +39,6 @@ setup_env() {
     echo "初始化环境与目录..."
     mkdir -p "$DATA_DIR"
     
-    # 修复：去除了在新版中会产生 Warning 的 version 字段
     cat > "$COMPOSE_FILE" <<EOF
 services:
   lite-monitor:
@@ -59,7 +56,7 @@ EOF
     echo "配置文件已生成: $COMPOSE_FILE"
 }
 
-# 启动服务
+# 启动服务并显示访问地址
 start_service() {
     echo "正在启动 Lite 监控服务端..."
     cd "$BASE_DIR" || exit
@@ -69,7 +66,17 @@ start_service() {
     else
         docker-compose up -d
     fi
-    echo "Lite 监控服务端已启动！"
+    
+    # 获取公网 IP (如果获取失败则显示占位符)
+    SERVER_IP=$(curl -s --connect-timeout 3 ifconfig.me || echo "<你的服务器IP>")
+    
+    echo ""
+    echo "========================================================"
+    echo " 🎉 Lite 监控服务端已成功启动！"
+    echo " 🌐 Web 端访问地址: http://${SERVER_IP}:${CONTAINER_PORT}"
+    echo " ⚠️  注意: 请确保服务器安全组或防火墙已放行 ${CONTAINER_PORT} 端口(TCP)。"
+    echo "========================================================"
+    echo ""
 }
 
 # 升级服务（无损数据）
@@ -92,7 +99,6 @@ upgrade_service() {
         docker-compose up -d
     fi
     
-    # 清理被替换下来的悬空(dangling)镜像，释放磁盘空间
     docker image prune -f
     echo "升级完成！数据已保留，服务正在运行。"
 }
@@ -122,7 +128,7 @@ uninstall_service() {
 menu() {
     clear
     echo "================================================="
-    echo " 探针 Lite 监控服务端 - Docker 一键管理脚本 "
+    echo " nuomiiiii/Lite 监控服务端 - Docker 一键管理脚本 "
     echo "================================================="
     echo " 1. 安装 Lite 监控服务端"
     echo " 2. 升级 Lite 监控服务端 (无损数据)"
