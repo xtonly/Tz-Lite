@@ -5,10 +5,10 @@ BASE_DIR="/opt/lite-monitor"
 DATA_DIR="${BASE_DIR}/data"
 COMPOSE_FILE="${BASE_DIR}/docker-compose.yml"
 
-# 根据实际镜像托管地址修改。如果是 GitHub 镜像库，可能是 ghcr.io/nuomiiiii/lite:latest
-IMAGE_NAME="nuomiiiii/lite:latest" 
-CONTAINER_PORT="12777"      # 宿主机映射端口
-CONTAINER_DATA_DIR="/data" # 容器内部的数据存储路径（请根据 Lite 的实际文档调整此处）
+# 修复：补全 GHCR (GitHub Container Registry) 前缀
+IMAGE_NAME="ghcr.io/nuomiiiii/lite:latest" 
+CONTAINER_PORT="12777"     # 修改：宿主机映射端口
+CONTAINER_DATA_DIR="/data" # 容器内部的数据存储路径 (视实际容器内的数据路径而定)
 # ============================================
 
 # 检查 root 权限
@@ -41,17 +41,16 @@ setup_env() {
     echo "初始化环境与目录..."
     mkdir -p "$DATA_DIR"
     
+    # 修复：去除了在新版中会产生 Warning 的 version 字段
     cat > "$COMPOSE_FILE" <<EOF
-version: '3.8'
 services:
   lite-monitor:
     image: ${IMAGE_NAME}
     container_name: lite-monitor
     restart: always
     ports:
-      - "${CONTAINER_PORT}:12777"
+      - "${CONTAINER_PORT}:8080"
     volumes:
-      # 核心：将宿主机目录挂载到容器内，保证更新容器时数据不丢失
       - ./data:${CONTAINER_DATA_DIR}
     environment:
       - TZ=Asia/Shanghai
@@ -83,7 +82,6 @@ upgrade_service() {
     
     cd "$BASE_DIR" || exit
     
-    # 核心升级逻辑：拉取新镜像 -> 销毁旧容器 -> 基于新镜像和旧挂载卷启动新容器
     if docker compose version &> /dev/null; then
         docker compose pull
         docker compose down
@@ -124,7 +122,7 @@ uninstall_service() {
 menu() {
     clear
     echo "================================================="
-    echo " nuomiiiii/Lite 监控服务端 - Docker 一键管理脚本 "
+    echo " 探针 Lite 监控服务端 - Docker 一键管理脚本 "
     echo "================================================="
     echo " 1. 安装 Lite 监控服务端"
     echo " 2. 升级 Lite 监控服务端 (无损数据)"
