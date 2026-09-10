@@ -7,7 +7,7 @@ COMPOSE_FILE="${BASE_DIR}/docker-compose.yml"
 
 # 根据实际镜像托管地址修改。如果是 GitHub 镜像库，可能是 ghcr.io/nuomiiiii/lite:latest
 IMAGE_NAME="nuomiiiii/lite:latest" 
-CONTAINER_PORT="8080"      # 宿主机映射端口
+CONTAINER_PORT="12777"      # 宿主机映射端口
 CONTAINER_DATA_DIR="/data" # 容器内部的数据存储路径（请根据 Lite 的实际文档调整此处）
 # ============================================
 
@@ -49,7 +49,7 @@ services:
     container_name: lite-monitor
     restart: always
     ports:
-      - "${CONTAINER_PORT}:8080"
+      - "${CONTAINER_PORT}:12777"
     volumes:
       # 核心：将宿主机目录挂载到容器内，保证更新容器时数据不丢失
       - ./data:${CONTAINER_DATA_DIR}
