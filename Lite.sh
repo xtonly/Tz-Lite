@@ -7,7 +7,7 @@ COMPOSE_FILE="${BASE_DIR}/docker-compose.yml"
 
 IMAGE_NAME="ghcr.io/nuomiiiii/lite:latest" 
 CONTAINER_PORT="12777"     # 宿主机映射端口
-INTERNAL_PORT="27777"      # 容器内部实际监听端口 (根据日志已修正)
+INTERNAL_PORT="27777"      # 容器内部实际监听端口
 CONTAINER_DATA_DIR="/data" 
 # ============================================
 
@@ -37,6 +37,12 @@ install_docker() {
 
 # 部署环境并生成 Compose 文件
 setup_env() {
+    # 修复：只在安装阶段清理可能冲突的残留容器
+    if [ "$(docker ps -aq -f name=lite-monitor)" ]; then
+        echo "检测到残留的 lite-monitor 容器，正在清理..."
+        docker rm -f lite-monitor >/dev/null 2>&1
+    fi
+
     echo "初始化环境与目录..."
     mkdir -p "$DATA_DIR"
     
@@ -65,7 +71,6 @@ configure_firewall() {
         ufw reload >/dev/null 2>&1
         echo "已通过 UFW 放行 ${CONTAINER_PORT} 端口。"
     elif command -v iptables &> /dev/null; then
-        # 检查是否已存在规则，防止重复添加
         if ! iptables -C INPUT -p tcp --dport ${CONTAINER_PORT} -j ACCEPT &> /dev/null; then
             iptables -I INPUT -p tcp --dport ${CONTAINER_PORT} -j ACCEPT
             echo "已通过 iptables 放行 ${CONTAINER_PORT} 端口。"
@@ -182,11 +187,5 @@ menu() {
             ;;
     esac
 }
-
-# 执行旧容器清理（确保重新运行 1 安装时端口能正确映射）
-if [ "$(docker ps -aq -f name=lite-monitor)" ]; then
-    echo "检测到旧的 lite-monitor 容器，准备执行重新部署..."
-    docker rm -f lite-monitor >/dev/null 2>&1
-fi
 
 menu
