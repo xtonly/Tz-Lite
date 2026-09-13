@@ -8,7 +8,7 @@ COMPOSE_FILE="${BASE_DIR}/docker-compose.yml"
 IMAGE_NAME="ghcr.io/nuomiiiii/lite:latest" 
 CONTAINER_PORT="12777"     # 宿主机映射端口
 INTERNAL_PORT="27777"      # 容器内部实际监听端口
-CONTAINER_DATA_DIR="/data" 
+CONTAINER_DATA_DIR="/app/data" # ✅ 已彻底修复：Lite 监控实际的内部数据存储路径
 # ============================================
 
 # 检查 root 权限
@@ -37,13 +37,14 @@ install_docker() {
 
 # 部署环境并生成 Compose 文件
 setup_env() {
-    # 修复：只在安装阶段清理可能冲突的残留容器
+    # 只在安装阶段清理可能冲突的残留容器
     if [ "$(docker ps -aq -f name=lite-monitor)" ]; then
-        echo "检测到残留的 lite-monitor 容器，正在清理..."
+        echo "检测到旧的 lite-monitor 容器，正在清理..."
         docker rm -f lite-monitor >/dev/null 2>&1
     fi
 
     echo "初始化环境与目录..."
+    # 这里的 mkdir -p 是安全的，如果已有数据，绝对不会覆盖或清空
     mkdir -p "$DATA_DIR"
     
     cat > "$COMPOSE_FILE" <<EOF
@@ -101,6 +102,7 @@ start_service() {
     echo " 🎉 Lite 监控服务端已成功启动！"
     echo " 🌐 Web 端访问地址: http://${SERVER_IP}:${CONTAINER_PORT}"
     echo " 🛡️  系统防火墙规则已自动放行。"
+    echo " 📁 数据持久化路径: $DATA_DIR -> $CONTAINER_DATA_DIR"
     echo " ⚠️  注意: 如果使用的是云服务器，请确保网页端安全组也已放行 ${CONTAINER_PORT} (TCP)。"
     echo "========================================================"
     echo ""
